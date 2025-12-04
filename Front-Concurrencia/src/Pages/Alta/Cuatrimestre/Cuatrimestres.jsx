@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import CuatrimestreForm from "./CuatrimestreForm";
 import CuatrimestreList from "./CuatrimestreList";
 import { cuatrimestresService } from "../../../Services/cuatrimestresService";
+import { programasService } from "../../../Services/programasService";
 
 export default function Cuatrimestres() {
   const navigate = useNavigate();
@@ -12,16 +13,22 @@ export default function Cuatrimestres() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Cargar programas (en un caso real, esto vendría de otra API)
-  // Por ahora simulamos algunos programas
+  // Cargar programas desde la API
   useEffect(() => {
-    // Aquí podrías hacer una llamada a tu API de programas si la tienes
-    const programasMock = [
-      { id: 1, nombre: "Ingeniería en Sistemas" },
-      { id: 2, nombre: "Administración de Empresas" },
-      { id: 3, nombre: "Diseño Digital" }
-    ];
-    setProgramas(programasMock);
+    const loadProgramas = async () => {
+      setLoading(true);
+      try {
+        const data = await programasService.getAll();
+        setProgramas(data);
+      } catch (err) {
+        setError("Error al cargar los programas");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProgramas();
   }, []);
 
   // Cargar cuatrimestres cuando se selecciona un programa
@@ -48,21 +55,18 @@ export default function Cuatrimestres() {
   };
 
   const handleCuatrimestreCreated = () => {
-    // Recargar cuatrimestres después de crear uno nuevo
     if (programaSeleccionado) {
       loadCuatrimestresByPrograma(programaSeleccionado);
     }
   };
 
   const handleCuatrimestreDeleted = () => {
-    // Recargar cuatrimestres después de eliminar
     if (programaSeleccionado) {
       loadCuatrimestresByPrograma(programaSeleccionado);
     }
   };
 
   const handleCuatrimestreUpdated = () => {
-    // Recargar cuatrimestres después de actualizar
     if (programaSeleccionado) {
       loadCuatrimestresByPrograma(programaSeleccionado);
     }
@@ -135,18 +139,24 @@ export default function Cuatrimestres() {
                     className="w-full max-w-2xl bg-white border-2 border-gray-300 rounded-xl px-6 py-5 text-gray-800 text-xl focus:outline-none focus:ring-4 focus:ring-blue-500/30 focus:border-blue-500 hover:border-gray-400 transition-all duration-300 appearance-none cursor-pointer text-center shadow-sm"
                     value={programaSeleccionado}
                     onChange={(e) => setProgramaSeleccionado(e.target.value)}
-                    disabled={loading}
+                    disabled={loading && programas.length === 0}
                   >
                     <option value="" className="text-gray-400 text-lg">-- Selecciona un programa --</option>
-                    {programas.map((p) => (
-                      <option key={p.id} value={p.id} className="text-gray-800 text-lg">
-                        {p.nombre}
+                    {loading && programas.length === 0 ? (
+                      <option disabled className="text-gray-400">
+                        Cargando programas...
                       </option>
-                    ))}
+                    ) : (
+                      programas.map((p) => (
+                        <option key={p.id} value={p.id} className="text-gray-800 text-lg">
+                          {p.nombre}
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
 
-                {/* Mensaje de error */}
+                {/* Mensajes de error */}
                 {error && (
                   <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl text-center">
                     <p className="text-red-600 font-medium">{error}</p>
