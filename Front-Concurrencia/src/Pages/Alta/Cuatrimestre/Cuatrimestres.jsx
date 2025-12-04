@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import CuatrimestreForm from "./CuatrimestreForm";
 import CuatrimestreList from "./CuatrimestreList";
-import { cuatrimestresService } from "../../../Services/cuatrimestresService";
+import { cuatrimestresService } from "./services/cuatrimestres.service";
 import { programasService } from "../../../Services/programasService";
 
 export default function Cuatrimestres() {
@@ -10,21 +10,25 @@ export default function Cuatrimestres() {
   const [programaSeleccionado, setProgramaSeleccionado] = useState("");
   const [cuatrimestres, setCuatrimestres] = useState([]);
   const [programas, setProgramas] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState({
+    programas: false,
+    cuatrimestres: false
+  });
   const [error, setError] = useState(null);
 
   // Cargar programas desde la API
   useEffect(() => {
     const loadProgramas = async () => {
-      setLoading(true);
+      setLoading(prev => ({ ...prev, programas: true }));
       try {
         const data = await programasService.getAll();
-        setProgramas(data);
+        setProgramas(data || []); // Asegurar que sea array
       } catch (err) {
+        console.error("Error al cargar programas:", err);
         setError("Error al cargar los programas");
-        console.error(err);
+        setProgramas([]); // Inicializar como array vacío
       } finally {
-        setLoading(false);
+        setLoading(prev => ({ ...prev, programas: false }));
       }
     };
 
@@ -41,16 +45,17 @@ export default function Cuatrimestres() {
   }, [programaSeleccionado]);
 
   const loadCuatrimestresByPrograma = async (programaId) => {
-    setLoading(true);
+    setLoading(prev => ({ ...prev, cuatrimestres: true }));
     setError(null);
     try {
       const data = await cuatrimestresService.getByPrograma(programaId);
-      setCuatrimestres(data);
+      setCuatrimestres(data || []); // Asegurar que sea array
     } catch (err) {
+      console.error("Error al cargar cuatrimestres:", err);
       setError("Error al cargar cuatrimestres");
-      console.error(err);
+      setCuatrimestres([]); // Inicializar como array vacío
     } finally {
-      setLoading(false);
+      setLoading(prev => ({ ...prev, cuatrimestres: false }));
     }
   };
 
@@ -72,7 +77,14 @@ export default function Cuatrimestres() {
     }
   };
 
-  const programaSeleccionadoObj = programas.find(p => p.id.toString() === programaSeleccionado);
+  const programaSeleccionadoObj = programas.find(p => 
+    p && p.id && p.id.toString() === programaSeleccionado
+  );
+
+  // FUNCIÓN PARA VERIFICAR SI TENEMOS CUATRIMESTRES VÁLIDOS
+  const tieneCuatrimestres = () => {
+    return Array.isArray(cuatrimestres) && cuatrimestres.length > 0;
+  };
 
   return (
     <div className="min-h-screen w-full bg-blue-950 p-4 md:p-8">
@@ -139,24 +151,33 @@ export default function Cuatrimestres() {
                     className="w-full max-w-2xl bg-white border-2 border-gray-300 rounded-xl px-6 py-5 text-gray-800 text-xl focus:outline-none focus:ring-4 focus:ring-blue-500/30 focus:border-blue-500 hover:border-gray-400 transition-all duration-300 appearance-none cursor-pointer text-center shadow-sm"
                     value={programaSeleccionado}
                     onChange={(e) => setProgramaSeleccionado(e.target.value)}
-                    disabled={loading && programas.length === 0}
+                    disabled={loading.programas}
                   >
                     <option value="" className="text-gray-400 text-lg">-- Selecciona un programa --</option>
-                    {loading && programas.length === 0 ? (
+                    {loading.programas ? (
                       <option disabled className="text-gray-400">
                         Cargando programas...
                       </option>
                     ) : (
-                      programas.map((p) => (
-                        <option key={p.id} value={p.id} className="text-gray-800 text-lg">
-                          {p.nombre}
+                      Array.isArray(programas) && programas.map((p) => (
+                        <option key={p?.id || Math.random()} value={p?.id || ""} className="text-gray-800 text-lg">
+                          {p?.nombre || "Programa sin nombre"}
                         </option>
                       ))
                     )}
                   </select>
                 </div>
 
-                {/* Mensajes de error */}
+                {/* Mensajes de estado */}
+                {loading.programas && (
+                  <div className="text-center py-4">
+                    <div className="inline-flex items-center gap-3">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                      <span className="text-gray-600">Cargando programas...</span>
+                    </div>
+                  </div>
+                )}
+
                 {error && (
                   <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl text-center">
                     <p className="text-red-600 font-medium">{error}</p>
@@ -211,8 +232,9 @@ export default function Cuatrimestres() {
                           {programaSeleccionadoObj.nombre}
                         </span>
                       </p>
-                      {loading && (
-                        <p className="text-blue-600 text-sm mt-1">
+                      {loading.cuatrimestres && (
+                        <p className="text-blue-600 text-sm mt-1 flex items-center gap-2">
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
                           Cargando cuatrimestres...
                         </p>
                       )}
@@ -225,7 +247,7 @@ export default function Cuatrimestres() {
                       setError(null);
                     }}
                     className="px-8 py-3.5 bg-white hover:bg-gray-50 text-gray-800 hover:text-gray-900 rounded-xl transition-all duration-300 border-2 border-gray-300 hover:border-gray-400 font-semibold shadow-md hover:shadow-lg"
-                    disabled={loading}
+                    disabled={loading.cuatrimestres}
                   >
                     Cambiar Programa
                   </button>
@@ -270,7 +292,7 @@ export default function Cuatrimestres() {
                       <h3 className="text-2xl font-bold text-gray-800">
                         Cuatrimestres Registrados
                       </h3>
-                      {!loading && (
+                      {!loading.cuatrimestres && Array.isArray(cuatrimestres) && (
                         <span className="bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 text-lg font-bold px-5 py-2 rounded-full shadow-sm">
                           {cuatrimestres.length} registrados
                         </span>
@@ -281,7 +303,7 @@ export default function Cuatrimestres() {
                     </p>
                   </div>
                   <div className="mt-8">
-                    {loading ? (
+                    {loading.cuatrimestres ? (
                       <div className="text-center py-12">
                         <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
                         <p className="mt-4 text-gray-600">Cargando cuatrimestres...</p>
@@ -296,13 +318,17 @@ export default function Cuatrimestres() {
                           Reintentar
                         </button>
                       </div>
-                    ) : (
+                    ) : Array.isArray(cuatrimestres) ? (
                       <CuatrimestreList 
                         cuatrimestres={cuatrimestres} 
                         onCuatrimestreDeleted={handleCuatrimestreDeleted}
                         onCuatrimestreUpdated={handleCuatrimestreUpdated}
                         programaId={programaSeleccionado}
                       />
+                    ) : (
+                      <div className="text-center py-12 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300">
+                        <p className="text-gray-600">No hay datos disponibles</p>
+                      </div>
                     )}
                   </div>
                 </div>
