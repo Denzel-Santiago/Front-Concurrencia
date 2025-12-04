@@ -18,7 +18,7 @@ export default function CuatrimestreList({
       return;
     }
 
-    setLoading({ ...loading, [id]: true });
+    setLoading(prev => ({ ...prev, [id]: true }));
     setError(null);
 
     try {
@@ -35,14 +35,14 @@ export default function CuatrimestreList({
       console.error("Error:", err);
       setError("Error de conexión con el servidor");
     } finally {
-      setLoading({ ...loading, [id]: false });
+      setLoading(prev => ({ ...prev, [id]: false }));
     }
   };
 
   const handleEdit = (cuatrimestre) => {
     setEditingId(cuatrimestre.id);
     setEditNombre(cuatrimestre.nombre);
-    setEditNumero(cuatrimestre.numero);
+    setEditNumero(cuatrimestre.numero.toString());
   };
 
   const handleCancelEdit = () => {
@@ -57,7 +57,8 @@ export default function CuatrimestreList({
       return;
     }
 
-    setLoading({ ...loading, [`edit-${id}`]: true });
+    const loadingKey = `edit-${id}`;
+    setLoading(prev => ({ ...prev, [loadingKey]: true }));
     setError(null);
 
     try {
@@ -81,18 +82,22 @@ export default function CuatrimestreList({
       console.error("Error:", err);
       setError("Error de conexión con el servidor");
     } finally {
-      setLoading({ ...loading, [`edit-${id}`]: false });
+      setLoading(prev => ({ ...prev, [loadingKey]: false }));
     }
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("es-ES", {
-      year: "numeric",
-      month: "short",
-      day: "numeric"
-    });
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("es-ES", {
+        year: "numeric",
+        month: "short",
+        day: "numeric"
+      });
+    } catch (error) {
+      return dateString;
+    }
   };
 
   return (
@@ -210,6 +215,14 @@ export default function CuatrimestreList({
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                               </svg>
                               Creado: {formatDate(cuatrimestre.created_at)}
+                            </span>
+                          )}
+                          {cuatrimestre.programa_nombre && (
+                            <span className="inline-flex items-center text-gray-600">
+                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                              </svg>
+                              {cuatrimestre.programa_nombre}
                             </span>
                           )}
                         </div>
