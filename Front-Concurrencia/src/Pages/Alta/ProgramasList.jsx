@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { programasService } from "../../Services/programasService";
-
+import {programasService} from "../../Services/programasService";
 export default function ProgramasList() {
   const [programas, setProgramas] = useState([]);
   const [loading, setLoading] = useState(true);
