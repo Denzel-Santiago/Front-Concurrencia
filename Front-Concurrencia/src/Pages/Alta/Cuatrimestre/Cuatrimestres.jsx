@@ -1,18 +1,74 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import CuatrimestreForm from "./CuatrimestreForm";
 import CuatrimestreList from "./CuatrimestreList";
+import { cuatrimestresService } from "./services/cuatrimestres.service";
 
 export default function Cuatrimestres() {
   const navigate = useNavigate();
   const [programaSeleccionado, setProgramaSeleccionado] = useState("");
   const [cuatrimestres, setCuatrimestres] = useState([]);
+  const [programas, setProgramas] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const programas = [
-    { id: 1, nombre: "Ingeniería en Software", cuatrimestres: 10 },
-    { id: 2, nombre: "Administración de Empresas", cuatrimestres: 8 },
-    { id: 3, nombre: "Diseño Digital", cuatrimestres: 9 }
-  ];
+  // Cargar programas (en un caso real, esto vendría de otra API)
+  // Por ahora simulamos algunos programas
+  useEffect(() => {
+    // Aquí podrías hacer una llamada a tu API de programas si la tienes
+    const programasMock = [
+      { id: 1, nombre: "Ingeniería en Sistemas" },
+      { id: 2, nombre: "Administración de Empresas" },
+      { id: 3, nombre: "Diseño Digital" }
+    ];
+    setProgramas(programasMock);
+  }, []);
+
+  // Cargar cuatrimestres cuando se selecciona un programa
+  useEffect(() => {
+    if (programaSeleccionado) {
+      loadCuatrimestresByPrograma(programaSeleccionado);
+    } else {
+      setCuatrimestres([]);
+    }
+  }, [programaSeleccionado]);
+
+  const loadCuatrimestresByPrograma = async (programaId) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await cuatrimestresService.getByPrograma(programaId);
+      setCuatrimestres(data);
+    } catch (err) {
+      setError("Error al cargar cuatrimestres");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCuatrimestreCreated = () => {
+    // Recargar cuatrimestres después de crear uno nuevo
+    if (programaSeleccionado) {
+      loadCuatrimestresByPrograma(programaSeleccionado);
+    }
+  };
+
+  const handleCuatrimestreDeleted = () => {
+    // Recargar cuatrimestres después de eliminar
+    if (programaSeleccionado) {
+      loadCuatrimestresByPrograma(programaSeleccionado);
+    }
+  };
+
+  const handleCuatrimestreUpdated = () => {
+    // Recargar cuatrimestres después de actualizar
+    if (programaSeleccionado) {
+      loadCuatrimestresByPrograma(programaSeleccionado);
+    }
+  };
+
+  const programaSeleccionadoObj = programas.find(p => p.id.toString() === programaSeleccionado);
 
   return (
     <div className="min-h-screen w-full bg-blue-950 p-4 md:p-8">
@@ -79,19 +135,27 @@ export default function Cuatrimestres() {
                     className="w-full max-w-2xl bg-white border-2 border-gray-300 rounded-xl px-6 py-5 text-gray-800 text-xl focus:outline-none focus:ring-4 focus:ring-blue-500/30 focus:border-blue-500 hover:border-gray-400 transition-all duration-300 appearance-none cursor-pointer text-center shadow-sm"
                     value={programaSeleccionado}
                     onChange={(e) => setProgramaSeleccionado(e.target.value)}
+                    disabled={loading}
                   >
                     <option value="" className="text-gray-400 text-lg">-- Selecciona un programa --</option>
                     {programas.map((p) => (
                       <option key={p.id} value={p.id} className="text-gray-800 text-lg">
-                        {p.nombre} ({p.cuatrimestres} cuatrimestres)
+                        {p.nombre}
                       </option>
                     ))}
                   </select>
                 </div>
+
+                {/* Mensaje de error */}
+                {error && (
+                  <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl text-center">
+                    <p className="text-red-600 font-medium">{error}</p>
+                  </div>
+                )}
               </div>
 
               {/* Mensaje de programa seleccionado */}
-              {programaSeleccionado && (
+              {programaSeleccionado && programaSeleccionadoObj && (
                 <div className="mt-12 p-8 bg-gradient-to-r from-emerald-50 to-green-50 rounded-2xl border-2 border-emerald-200 text-center">
                   <div className="flex items-center justify-center mb-4">
                     <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mr-4">
@@ -105,7 +169,7 @@ export default function Cuatrimestres() {
                   </div>
                   <p className="text-emerald-800 text-xl mb-2">
                     <span className="font-semibold">
-                      {programas.find(p => p.id.toString() === programaSeleccionado)?.nombre}
+                      {programaSeleccionadoObj.nombre}
                     </span>
                   </p>
                   <p className="text-emerald-700">
@@ -117,7 +181,7 @@ export default function Cuatrimestres() {
           </div>
 
           {/* SECCIÓN 2: CONTENIDO PRINCIPAL (SOLO SI HAY PROGRAMA SELECCIONADO) */}
-          {programaSeleccionado && (
+          {programaSeleccionado && programaSeleccionadoObj && (
             <>
               {/* Header de programa */}
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl shadow-2xl p-8 mb-12 border-2 border-blue-200">
@@ -134,14 +198,24 @@ export default function Cuatrimestres() {
                       </h2>
                       <p className="text-gray-700 text-lg">
                         Programa: <span className="font-semibold text-blue-800">
-                          {programas.find(p => p.id.toString() === programaSeleccionado)?.nombre}
+                          {programaSeleccionadoObj.nombre}
                         </span>
                       </p>
+                      {loading && (
+                        <p className="text-blue-600 text-sm mt-1">
+                          Cargando cuatrimestres...
+                        </p>
+                      )}
                     </div>
                   </div>
                   <button
-                    onClick={() => setProgramaSeleccionado("")}
+                    onClick={() => {
+                      setProgramaSeleccionado("");
+                      setCuatrimestres([]);
+                      setError(null);
+                    }}
                     className="px-8 py-3.5 bg-white hover:bg-gray-50 text-gray-800 hover:text-gray-900 rounded-xl transition-all duration-300 border-2 border-gray-300 hover:border-gray-400 font-semibold shadow-md hover:shadow-lg"
+                    disabled={loading}
                   >
                     Cambiar Programa
                   </button>
@@ -169,7 +243,7 @@ export default function Cuatrimestres() {
                   <div className="mt-8">
                     <CuatrimestreForm
                       programaId={programaSeleccionado}
-                      setCuatrimestres={setCuatrimestres}
+                      onCuatrimestreCreated={handleCuatrimestreCreated}
                     />
                   </div>
                 </div>
@@ -186,16 +260,40 @@ export default function Cuatrimestres() {
                       <h3 className="text-2xl font-bold text-gray-800">
                         Cuatrimestres Registrados
                       </h3>
-                      <span className="bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 text-lg font-bold px-5 py-2 rounded-full shadow-sm">
-                        {cuatrimestres.length} registrados
-                      </span>
+                      {!loading && (
+                        <span className="bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 text-lg font-bold px-5 py-2 rounded-full shadow-sm">
+                          {cuatrimestres.length} registrados
+                        </span>
+                      )}
                     </div>
                     <p className="text-gray-600 text-lg">
                       Lista de cuatrimestres asignados a este programa
                     </p>
                   </div>
                   <div className="mt-8">
-                    <CuatrimestreList cuatrimestres={cuatrimestres} />
+                    {loading ? (
+                      <div className="text-center py-12">
+                        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                        <p className="mt-4 text-gray-600">Cargando cuatrimestres...</p>
+                      </div>
+                    ) : error ? (
+                      <div className="text-center py-8 bg-red-50 rounded-xl border border-red-200">
+                        <p className="text-red-600">{error}</p>
+                        <button
+                          onClick={() => loadCuatrimestresByPrograma(programaSeleccionado)}
+                          className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                        >
+                          Reintentar
+                        </button>
+                      </div>
+                    ) : (
+                      <CuatrimestreList 
+                        cuatrimestres={cuatrimestres} 
+                        onCuatrimestreDeleted={handleCuatrimestreDeleted}
+                        onCuatrimestreUpdated={handleCuatrimestreUpdated}
+                        programaId={programaSeleccionado}
+                      />
+                    )}
                   </div>
                 </div>
               </div>
