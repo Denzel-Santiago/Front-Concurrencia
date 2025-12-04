@@ -1,7 +1,9 @@
+// ProgramaForm.jsx adaptado para usar el servicio
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { programasService } from "../../Services/programasService";
 
-export default function ProgramasForm() {
+export default function ProgramaForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   
@@ -24,14 +26,13 @@ export default function ProgramasForm() {
   const loadPrograma = async () => {
     try {
       setLoading(true);
-      const programaEjemplo = {
-        id: id,
-        nombre: "Ingeniería en Sistemas",
-        cuatrimestres: 10,
-        descripcion: "Programa de ingeniería en sistemas computacionales",
-        estado: "Activo"
-      };
-      setFormData(programaEjemplo);
+      const programa = await programasService.getById(id);
+      setFormData({
+        nombre: programa.nombre,
+        cuatrimestres: programa.cuatrimestres,
+        descripcion: programa.descripcion || "",
+        estado: programa.estado || "Activo"
+      });
     } catch (error) {
       console.error("Error al cargar programa:", error);
       alert("Error al cargar los datos del programa");
@@ -54,13 +55,12 @@ export default function ProgramasForm() {
 
     try {
       if (isEditing) {
-        console.log("Editando programa:", { id, ...formData });
+        await programasService.update(id, formData);
         alert("Programa actualizado exitosamente");
       } else {
-        console.log("Creando programa:", formData);
+        await programasService.create(formData);
         alert("Programa creado exitosamente");
       }
-      
       navigate("/alta/programas");
     } catch (error) {
       console.error("Error al guardar:", error);
@@ -69,6 +69,9 @@ export default function ProgramasForm() {
       setLoading(false);
     }
   };
+
+  // ... resto del JSX del formulario (el mismo que ya tenías)
+
 
   return (
     <div className="min-h-screen w-full bg-blue-950 p-4">
