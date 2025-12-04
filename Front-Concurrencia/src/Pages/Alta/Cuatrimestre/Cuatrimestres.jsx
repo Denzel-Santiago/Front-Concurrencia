@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import CuatrimestreForm from "./CuatrimestreForm";
 import CuatrimestreList from "./CuatrimestreList";
-import { cuatrimestresService } from "./services/cuatrimestres.service";
+import { cuatrimestresService } from "../../../Services/programasService";
 
 export default function Cuatrimestres() {
   const navigate = useNavigate();

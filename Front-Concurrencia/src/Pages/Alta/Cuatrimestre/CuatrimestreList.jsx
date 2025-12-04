@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { cuatrimestresService } from "./services/cuatrimestres.service";
+import { cuatrimestresService } from "../../../Services/programasService";
 
 export default function CuatrimestreList({ 
   cuatrimestres, 
