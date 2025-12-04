@@ -1,5 +1,19 @@
-export default function AlumnoList({ alumnos, onEdit, onDelete }) {
-  if (alumnos.length === 0) {
+import { useState } from "react";
+
+export default function AlumnoList({ alumnos, onEdit, onDelete, loading }) {
+  // Estado para mostrar/ocultar detalles
+  const [expandedId, setExpandedId] = useState(null);
+
+  if (loading) {
+    return (
+      <div className="text-center py-16">
+        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600"></div>
+        <p className="mt-4 text-gray-600">Cargando alumnos...</p>
+      </div>
+    );
+  }
+
+  if (!alumnos || alumnos.length === 0) {
     return (
       <div className="text-center py-16">
         <div className="w-24 h-24 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-6">
@@ -15,6 +29,54 @@ export default function AlumnoList({ alumnos, onEdit, onDelete }) {
     );
   }
 
+  // Calcular estadísticas
+  const calcularEstadisticas = () => {
+    const totalAlumnos = alumnos.length;
+    const cuatrimestresUnicos = [...new Set(alumnos.map(a => a.cuatrimestre_actual))].length;
+    const totalInscripciones = alumnos.reduce((total, alumno) => {
+      return total + (alumno.inscripciones_activas || 0);
+    }, 0);
+
+    return { totalAlumnos, cuatrimestresUnicos, totalInscripciones };
+  };
+
+  const estadisticas = calcularEstadisticas();
+
+  // Formatear fecha de nacimiento
+  const formatFechaNacimiento = (fecha) => {
+    if (!fecha) return "No especificada";
+    try {
+      return new Date(fecha).toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    } catch {
+      return fecha;
+    }
+  };
+
+  // Formatear edad
+  const calcularEdad = (fechaNacimiento) => {
+    if (!fechaNacimiento) return "N/A";
+    try {
+      const hoy = new Date();
+      const nacimiento = new Date(fechaNacimiento);
+      let edad = hoy.getFullYear() - nacimiento.getFullYear();
+      const mes = hoy.getMonth() - nacimiento.getMonth();
+      if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+        edad--;
+      }
+      return `${edad} años`;
+    } catch {
+      return "N/A";
+    }
+  };
+
+  const toggleExpand = (id) => {
+    setExpandedId(expandedId === id ? null : id);
+  };
+
   return (
     <div className="space-y-6">
       {/* Encabezado de la tabla */}
@@ -28,11 +90,11 @@ export default function AlumnoList({ alumnos, onEdit, onDelete }) {
             </div>
             <div>
               <h2 className="text-2xl font-bold text-gray-800">Lista de Alumnos</h2>
-              <p className="text-gray-600">{alumnos.length} estudiantes registrados</p>
+              <p className="text-gray-600">{estadisticas.totalAlumnos} estudiantes registrados</p>
             </div>
           </div>
           <div className="bg-white px-4 py-2 rounded-lg border border-gray-300">
-            <span className="text-cyan-700 font-bold">{alumnos.length} registros</span>
+            <span className="text-cyan-700 font-bold">{estadisticas.totalAlumnos} registros</span>
           </div>
         </div>
       </div>
@@ -49,6 +111,9 @@ export default function AlumnoList({ alumnos, onEdit, onDelete }) {
                 Información Académica
               </th>
               <th className="text-left py-6 px-8 text-gray-700 font-bold text-lg border-b-2 border-gray-200">
+                Estado
+              </th>
+              <th className="text-left py-6 px-8 text-gray-700 font-bold text-lg border-b-2 border-gray-200">
                 Acciones
               </th>
             </tr>
@@ -56,85 +121,167 @@ export default function AlumnoList({ alumnos, onEdit, onDelete }) {
 
           <tbody className="divide-y divide-gray-100">
             {alumnos.map((alumno) => (
-              <tr key={alumno.id} className="hover:bg-gray-50 transition-colors">
-                <td className="py-6 px-8">
-                  <div className="flex items-center">
-                    <div className="w-12 h-12 bg-gradient-to-br from-cyan-100 to-blue-100 rounded-full flex items-center justify-center mr-4">
-                      <svg className="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h4 className="text-lg font-bold text-gray-800">{alumno.nombre}</h4>
-                      <div className="space-y-1 mt-2">
-                        <p className="text-gray-600 text-sm">
-                          <span className="font-medium">Matrícula:</span> {alumno.matricula}
-                        </p>
-                        {alumno.email && (
-                          <p className="text-gray-600 text-sm">
-                            <span className="font-medium">Email:</span> {alumno.email}
-                          </p>
-                        )}
-                        {alumno.telefono && (
-                          <p className="text-gray-600 text-sm">
-                            <span className="font-medium">Teléfono:</span> {alumno.telefono}
-                          </p>
-                        )}
+              <>
+                <tr key={alumno.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="py-6 px-8">
+                    <div className="flex items-center">
+                      <div className="w-12 h-12 bg-gradient-to-br from-cyan-100 to-blue-100 rounded-full flex items-center justify-center mr-4">
+                        <svg className="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
                       </div>
-                    </div>
-                  </div>
-                </td>
-
-                <td className="py-6 px-8">
-                  <div className="space-y-3">
-                    <div className="inline-flex items-center bg-cyan-50 px-4 py-2 rounded-lg">
-                      <span className="text-cyan-800 font-bold mr-2">Cuatrimestre:</span>
-                      <span className="text-cyan-900 font-bold text-lg">{alumno.cuatrimestre}</span>
-                    </div>
-                    
-                    {alumno.asignaturas.length > 0 && (
                       <div>
-                        <p className="text-gray-600 text-sm font-medium mb-2">Materias inscritas:</p>
-                        <div className="flex flex-wrap gap-2">
-                          {alumno.asignaturas.slice(0, 3).map((materia, index) => (
-                            <span key={index} className="bg-gray-100 text-gray-700 px-3 py-1 rounded-lg text-xs">
-                              {materia}
-                            </span>
-                          ))}
-                          {alumno.asignaturas.length > 3 && (
-                            <span className="bg-gray-200 text-gray-700 px-3 py-1 rounded-lg text-xs">
-                              +{alumno.asignaturas.length - 3} más
-                            </span>
+                        <h4 className="text-lg font-bold text-gray-800">{alumno.nombre_completo}</h4>
+                        <div className="space-y-1 mt-2">
+                          <p className="text-gray-600 text-sm">
+                            <span className="font-medium">Matrícula:</span> {alumno.matricula || "N/A"}
+                          </p>
+                          {alumno.email && (
+                            <p className="text-gray-600 text-sm">
+                              <span className="font-medium">Email:</span> {alumno.email}
+                            </p>
                           )}
                         </div>
                       </div>
-                    )}
-                  </div>
-                </td>
+                    </div>
+                  </td>
 
-                <td className="py-6 px-8">
-                  <div className="flex flex-col gap-3">
-                    <button
-                      onClick={() => onEdit(alumno)}
-                      className="flex items-center justify-center px-6 py-3 bg-amber-50 hover:bg-amber-100 text-amber-700 hover:text-amber-800 rounded-xl transition-all duration-300 border-2 border-amber-200 hover:border-amber-300 font-semibold"
-                    >
-                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => onDelete(alumno.id)}
-                      className="flex items-center justify-center px-6 py-3 bg-red-50 hover:bg-red-100 text-red-700 hover:text-red-800 rounded-xl transition-all duration-300 border-2 border-red-200 hover:border-red-300 font-semibold"
-                    >
-                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                      Eliminar
-                    </button>
-                  </div>
-                </td>
-              </tr>
+                  <td className="py-6 px-8">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-4">
+                        <div className="inline-flex items-center bg-cyan-50 px-4 py-2 rounded-lg">
+                          <span className="text-cyan-800 font-bold mr-2">Cuatrimestre:</span>
+                          <span className="text-cyan-900 font-bold text-lg">{alumno.cuatrimestre_actual || "N/A"}</span>
+                        </div>
+                        {alumno.programa_nombre && (
+                          <div className="inline-flex items-center bg-blue-50 px-4 py-2 rounded-lg">
+                            <span className="text-blue-800 font-bold mr-2">Programa:</span>
+                            <span className="text-blue-900 font-medium">{alumno.programa_nombre}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+
+                  <td className="py-6 px-8">
+                    <div className="space-y-2">
+                      <div className={`inline-flex items-center px-4 py-2 rounded-lg ${alumno.inscripciones_activas > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={alumno.inscripciones_activas > 0 ? "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" : "M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"} />
+                        </svg>
+                        <span className="font-medium">
+                          {alumno.inscripciones_activas > 0 
+                            ? `${alumno.inscripciones_activas} inscripción(es) activa(s)`
+                            : 'Sin inscripciones activas'}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+
+                  <td className="py-6 px-8">
+                    <div className="flex flex-col gap-3">
+                      <button
+                        onClick={() => onEdit(alumno)}
+                        className="flex items-center justify-center px-6 py-3 bg-amber-50 hover:bg-amber-100 text-amber-700 hover:text-amber-800 rounded-xl transition-all duration-300 border-2 border-amber-200 hover:border-amber-300 font-semibold"
+                        disabled={loading}
+                      >
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => onDelete(alumno.id)}
+                        className="flex items-center justify-center px-6 py-3 bg-red-50 hover:bg-red-100 text-red-700 hover:text-red-800 rounded-xl transition-all duration-300 border-2 border-red-200 hover:border-red-300 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={loading || alumno.inscripciones_activas > 0}
+                        title={alumno.inscripciones_activas > 0 ? "No se puede eliminar porque tiene inscripciones activas" : ""}
+                      >
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Eliminar
+                      </button>
+                      <button
+                        onClick={() => toggleExpand(alumno.id)}
+                        className="flex items-center justify-center px-6 py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 hover:text-gray-800 rounded-xl transition-all duration-300 border-2 border-gray-200 hover:border-gray-300 font-semibold"
+                      >
+                        <svg className={`w-5 h-5 mr-2 transform transition-transform ${expandedId === alumno.id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                        {expandedId === alumno.id ? 'Menos detalles' : 'Más detalles'}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                {/* Detalles expandidos */}
+                {expandedId === alumno.id && (
+                  <tr className="bg-blue-50/50">
+                    <td colSpan="4" className="px-8 py-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Información Personal */}
+                        <div className="bg-white p-6 rounded-xl border border-gray-200">
+                          <h5 className="font-bold text-gray-800 mb-4 flex items-center">
+                            <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            Información Personal
+                          </h5>
+                          <div className="space-y-3">
+                            <div>
+                              <span className="text-gray-600 text-sm">Fecha de nacimiento:</span>
+                              <p className="font-medium">{formatFechaNacimiento(alumno.fecha_nacimiento)}</p>
+                              <p className="text-sm text-gray-500">({calcularEdad(alumno.fecha_nacimiento)})</p>
+                            </div>
+                            {alumno.telefono && (
+                              <div>
+                                <span className="text-gray-600 text-sm">Teléfono:</span>
+                                <p className="font-medium">{alumno.telefono}</p>
+                              </div>
+                            )}
+                            {alumno.email && (
+                              <div>
+                                <span className="text-gray-600 text-sm">Correo electrónico:</span>
+                                <p className="font-medium">{alumno.email}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Información Académica */}
+                        <div className="bg-white p-6 rounded-xl border border-gray-200">
+                          <h5 className="font-bold text-gray-800 mb-4 flex items-center">
+                            <svg className="w-5 h-5 mr-2 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                            </svg>
+                            Información Académica
+                          </h5>
+                          <div className="space-y-3">
+                            <div>
+                              <span className="text-gray-600 text-sm">Matrícula:</span>
+                              <p className="font-medium">{alumno.matricula || "No asignada"}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600 text-sm">Programa:</span>
+                              <p className="font-medium">{alumno.programa_nombre || "No asignado"}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600 text-sm">Cuatrimestre actual:</span>
+                              <p className="font-medium">{alumno.cuatrimestre_actual || "N/A"}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600 text-sm">Inscripciones activas:</span>
+                              <p className={`font-medium ${alumno.inscripciones_activas > 0 ? 'text-emerald-600' : 'text-gray-600'}`}>
+                                {alumno.inscripciones_activas || 0}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </>
             ))}
           </tbody>
         </table>
@@ -144,19 +291,15 @@ export default function AlumnoList({ alumnos, onEdit, onDelete }) {
       <div className="bg-white p-6 rounded-2xl border-2 border-gray-100">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="text-center p-4 bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl border border-cyan-100">
-            <p className="text-3xl font-bold text-cyan-700">{alumnos.length}</p>
+            <p className="text-3xl font-bold text-cyan-700">{estadisticas.totalAlumnos}</p>
             <p className="text-gray-700 font-medium">Total de alumnos</p>
           </div>
           <div className="text-center p-4 bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl border border-emerald-100">
-            <p className="text-3xl font-bold text-emerald-700">
-              {[...new Set(alumnos.map(a => a.cuatrimestre))].length}
-            </p>
+            <p className="text-3xl font-bold text-emerald-700">{estadisticas.cuatrimestresUnicos}</p>
             <p className="text-gray-700 font-medium">Cuatrimestres activos</p>
           </div>
           <div className="text-center p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-100">
-            <p className="text-3xl font-bold text-amber-700">
-              {alumnos.reduce((total, alumno) => total + alumno.asignaturas.length, 0)}
-            </p>
+            <p className="text-3xl font-bold text-amber-700">{estadisticas.totalInscripciones}</p>
             <p className="text-gray-700 font-medium">Total de inscripciones</p>
           </div>
         </div>
