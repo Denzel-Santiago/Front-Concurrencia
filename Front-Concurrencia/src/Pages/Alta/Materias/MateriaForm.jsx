@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { materiasService } from "./services/materias.service";
+import { materiasService } from "../../../Services/materias.service";
 
 export default function MateriaForm({ cuatrimestreId, onMateriaCreated }) {
   const [nombre, setNombre] = useState("");
