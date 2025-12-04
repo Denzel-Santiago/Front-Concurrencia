@@ -1,4 +1,3 @@
-// src/components/Plataforma/modales/ModalCrearCursoMoodle.jsx
 import React, { useState, useEffect } from 'react';
 import {
   Modal,
@@ -19,7 +18,7 @@ import {
   Slider
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import plataformaService from '../../Services/plataforma.service';
+import plataformaService from '../../../Services/plataforma.service';
 
 const style = {
   position: 'absolute',
@@ -52,25 +51,12 @@ const ModalCrearCursoMoodle = ({ open, onClose, grupoId, grupoInfo, onSuccess })
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [categorias, setCategorias] = useState([]);
 
-  // Cargar categorías de Moodle
   useEffect(() => {
-    if (open) {
-      cargarCategorias();
+    if (open && grupoInfo) {
       prellenarFormulario();
     }
   }, [open, grupoInfo]);
-
-  const cargarCategorias = async () => {
-    // En una implementación real, esto vendría de Moodle
-    // Por ahora usamos categorías por defecto
-    setCategorias([
-      { id: 1, name: 'Categoría Principal' },
-      { id: 2, name: 'Programas Académicos' },
-      { id: 3, name: 'Cursos de Actualización' }
-    ]);
-  };
 
   const prellenarFormulario = () => {
     if (grupoInfo) {
@@ -80,8 +66,8 @@ const ModalCrearCursoMoodle = ({ open, onClose, grupoId, grupoInfo, onSuccess })
       setFormData(prev => ({
         ...prev,
         fullname: nombreCurso,
-        shortname: shortname.substring(0, 50), // Limitar a 50 caracteres
-        summary: `Curso de ${grupoInfo.materia_nombre} para el grupo ${grupoInfo.nombre}.\nPrograma: ${grupoInfo.programa_nombre}\nCuatrimestre: ${grupoInfo.cuatrimestre_numero}`
+        shortname: shortname.substring(0, 50),
+        summary: `Curso de ${grupoInfo.materia_nombre} para el grupo ${grupoInfo.nombre}.`
       }));
     }
   };
@@ -114,10 +100,6 @@ const ModalCrearCursoMoodle = ({ open, onClose, grupoId, grupoInfo, onSuccess })
     }));
   };
 
-  const formatDate = (timestamp) => {
-    return new Date(timestamp * 1000).toLocaleDateString();
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -136,26 +118,15 @@ const ModalCrearCursoMoodle = ({ open, onClose, grupoId, grupoInfo, onSuccess })
       if (result.success) {
         setSuccess('Curso creado exitosamente en Moodle');
         
-        // Actualizar el grupo local con el ID de Moodle
-        if (grupoId && result.data.course_id) {
-          try {
-            await plataformaService.updateGrupoMoodleId(grupoId, result.data.course_id);
-            
-            if (onSuccess) {
-              onSuccess({
-                grupo_id: grupoId,
-                curso_moodle_id: result.data.course_id,
-                fullname: formData.fullname,
-                shortname: formData.shortname
-              });
-            }
-          } catch (updateError) {
-            console.error('Error actualizando ID de Moodle:', updateError);
-            // No mostramos error porque el curso sí se creó en Moodle
-          }
+        if (onSuccess) {
+          onSuccess({
+            grupo_id: grupoId,
+            curso_moodle_id: result.data.course_id,
+            fullname: formData.fullname,
+            shortname: formData.shortname
+          });
         }
         
-        // Cerrar automáticamente después de 2 segundos
         setTimeout(() => {
           if (onClose) onClose();
         }, 2000);
@@ -185,8 +156,6 @@ const ModalCrearCursoMoodle = ({ open, onClose, grupoId, grupoInfo, onSuccess })
         {grupoInfo && (
           <Alert severity="info" sx={{ mb: 2 }}>
             Creando curso para: <strong>{grupoInfo.materia_nombre} - {grupoInfo.nombre}</strong>
-            <br />
-            Programa: {grupoInfo.programa_nombre} | Cuatrimestre: {grupoInfo.cuatrimestre_numero}
           </Alert>
         )}
         
@@ -213,7 +182,6 @@ const ModalCrearCursoMoodle = ({ open, onClose, grupoId, grupoInfo, onSuccess })
                 onChange={handleChange}
                 required
                 disabled={loading}
-                helperText="Nombre completo que se mostrará en Moodle"
               />
             </Grid>
             
@@ -226,7 +194,6 @@ const ModalCrearCursoMoodle = ({ open, onClose, grupoId, grupoInfo, onSuccess })
                 onChange={handleChange}
                 required
                 disabled={loading}
-                helperText="Nombre corto para identificarlo fácilmente"
               />
             </Grid>
             
@@ -240,11 +207,9 @@ const ModalCrearCursoMoodle = ({ open, onClose, grupoId, grupoInfo, onSuccess })
                   onChange={handleChange}
                   disabled={loading}
                 >
-                  {categorias.map((categoria) => (
-                    <MenuItem key={categoria.id} value={categoria.id}>
-                      {categoria.name}
-                    </MenuItem>
-                  ))}
+                  <MenuItem value={1}>Categoría Principal</MenuItem>
+                  <MenuItem value={2}>Programas Académicos</MenuItem>
+                  <MenuItem value={3}>Cursos de Actualización</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -262,7 +227,6 @@ const ModalCrearCursoMoodle = ({ open, onClose, grupoId, grupoInfo, onSuccess })
                   <MenuItem value="topics">Formato de temas</MenuItem>
                   <MenuItem value="weeks">Formato semanal</MenuItem>
                   <MenuItem value="social">Formato social</MenuItem>
-                  <MenuItem value="singleactivity">Actividad única</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -277,7 +241,6 @@ const ModalCrearCursoMoodle = ({ open, onClose, grupoId, grupoInfo, onSuccess })
                 multiline
                 rows={3}
                 disabled={loading}
-                helperText="Descripción que aparecerá en la página del curso"
               />
             </Grid>
             
@@ -294,46 +257,6 @@ const ModalCrearCursoMoodle = ({ open, onClose, grupoId, grupoInfo, onSuccess })
                 marks
                 min={1}
                 max={20}
-                disabled={loading}
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <Typography gutterBottom>
-                Fecha de inicio: {formatDate(formData.startdate)}
-              </Typography>
-              <TextField
-                fullWidth
-                type="date"
-                name="startdate"
-                value={new Date(formData.startdate * 1000).toISOString().split('T')[0]}
-                onChange={(e) => {
-                  const date = new Date(e.target.value);
-                  setFormData(prev => ({
-                    ...prev,
-                    startdate: Math.floor(date.getTime() / 1000)
-                  }));
-                }}
-                disabled={loading}
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <Typography gutterBottom>
-                Fecha de fin: {formatDate(formData.enddate)}
-              </Typography>
-              <TextField
-                fullWidth
-                type="date"
-                name="enddate"
-                value={new Date(formData.enddate * 1000).toISOString().split('T')[0]}
-                onChange={(e) => {
-                  const date = new Date(e.target.value);
-                  setFormData(prev => ({
-                    ...prev,
-                    enddate: Math.floor(date.getTime() / 1000)
-                  }));
-                }}
                 disabled={loading}
               />
             </Grid>

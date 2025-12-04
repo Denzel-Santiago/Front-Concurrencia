@@ -30,9 +30,9 @@ import {
   Error as ErrorIcon,
   Pending as PendingIcon,
   Schedule as ScheduleIcon,
-  Moodle as MoodleIcon
+  School as MoodleIcon 
 } from '@mui/icons-material';
-import plataformaService from '../../../services/plataforma.service';
+import plataformaService from '../../Services/plataforma.service';
 
 const EstadoProcesos = () => {
   const [procesos, setProcesos] = useState([]);

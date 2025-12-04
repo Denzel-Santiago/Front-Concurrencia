@@ -30,10 +30,10 @@ import {
   CheckCircle as CheckCircleIcon,
   PlaylistAddCheck as PlaylistAddCheckIcon,
   Refresh as RefreshIcon,
-  Moodle as MoodleIcon
+  School as MoodleIcon 
 } from '@mui/icons-material';
-import plataformaService from '../../../services/plataforma.service';
-import ModalCrearUsuarioMoodle from './modales/ModalCrearUsuarioMoodle';
+import plataformaService from '../../Services/plataforma.service';
+import ModalCrearUsuarioMoodle from '../Plataforma/ModalCrearCursoMoodle';
 import ModalCrearCursoMoodle from './modales/ModalCrearCursoMoodle';
 
 const PanelAcciones = ({ grupoSeleccionado, onSincronizacionCompletada }) => {

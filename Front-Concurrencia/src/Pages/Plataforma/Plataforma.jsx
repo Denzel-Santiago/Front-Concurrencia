@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import {
   Home as HomeIcon,
-  Moodle as MoodleIcon,
+  School as MoodleIcon,
   Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
@@ -26,7 +26,7 @@ import EstadoProcesos from './EstadoProcesos';
 import Resultados from './Resultados';
 
 // Servicio
-import plataformaService from '../../../services/plataforma.service';
+import plataformaService from '../../Services/plataforma.service';
 
 const Plataforma = () => {
   const [grupoSeleccionado, setGrupoSeleccionado] = useState(null);

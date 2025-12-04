@@ -26,9 +26,10 @@ import {
   Error as ErrorIcon,
   Refresh as RefreshIcon,
   Link as LinkIcon,
-  Moodle as MoodleIcon
+School as MoodleIcon 
+
 } from '@mui/icons-material';
-import plataformaService from '../../../services/plataforma.service';
+import plataformaService from '../../Services/plataforma.service';
 
 const InfoCurso = ({ grupoId, grupoInfo: initialGrupoInfo }) => {
   const [grupoInfo, setGrupoInfo] = useState(initialGrupoInfo);

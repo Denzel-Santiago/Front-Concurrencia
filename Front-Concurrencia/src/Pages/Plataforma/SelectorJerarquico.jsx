@@ -13,7 +13,7 @@ import {
   Card,
   CardContent
 } from '@mui/material';
-import plataformaService from '../../../Services/plataformaService';
+    import plataformaService from '../../Services/plataforma.service';
 
 const SelectorJerarquico = ({ onGrupoSeleccionado, initialGrupoId = null }) => {
   const [programas, setProgramas] = useState([]);
