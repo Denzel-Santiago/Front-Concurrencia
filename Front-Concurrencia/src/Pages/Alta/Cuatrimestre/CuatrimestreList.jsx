@@ -1,20 +1,21 @@
 import { useState } from "react";
-import { cuatrimestresService } from "../../../Services/cuatrimestresService";
+import { materiasService } from "../../../Services/materias.service";
 
-export default function CuatrimestreList({ 
-  cuatrimestres, 
-  onCuatrimestreDeleted, 
-  onCuatrimestreUpdated,
-  programaId 
+export default function MateriaList({ 
+  materias, 
+  onMateriaDeleted, 
+  onMateriaUpdated,
+  cuatrimestreId 
 }) {
   const [editingId, setEditingId] = useState(null);
   const [editNombre, setEditNombre] = useState("");
-  const [editNumero, setEditNumero] = useState("");
+  const [editCodigo, setEditCodigo] = useState("");
+  const [editCreditos, setEditCreditos] = useState("");
   const [loading, setLoading] = useState({});
   const [error, setError] = useState(null);
 
   const handleDelete = async (id) => {
-    if (!window.confirm("¿Estás seguro de eliminar este cuatrimestre?")) {
+    if (!window.confirm("¿Estás seguro de eliminar esta materia? También se eliminarán las asignaciones a docentes.")) {
       return;
     }
 
@@ -22,14 +23,14 @@ export default function CuatrimestreList({
     setError(null);
 
     try {
-      const result = await cuatrimestresService.delete(id);
+      const result = await materiasService.delete(id);
 
       if (result.success) {
-        if (onCuatrimestreDeleted) {
-          onCuatrimestreDeleted();
+        if (onMateriaDeleted) {
+          onMateriaDeleted();
         }
       } else {
-        setError(result.message || "Error al eliminar el cuatrimestre");
+        setError(result.message || "Error al eliminar la materia");
       }
     } catch (err) {
       console.error("Error:", err);
@@ -39,20 +40,22 @@ export default function CuatrimestreList({
     }
   };
 
-  const handleEdit = (cuatrimestre) => {
-    setEditingId(cuatrimestre.id);
-    setEditNombre(cuatrimestre.nombre);
-    setEditNumero(cuatrimestre.numero.toString());
+  const handleEdit = (materia) => {
+    setEditingId(materia.id);
+    setEditNombre(materia.nombre);
+    setEditCodigo(materia.codigo);
+    setEditCreditos(materia.creditos.toString());
   };
 
   const handleCancelEdit = () => {
     setEditingId(null);
     setEditNombre("");
-    setEditNumero("");
+    setEditCodigo("");
+    setEditCreditos("");
   };
 
   const handleSaveEdit = async (id) => {
-    if (!editNombre.trim() || !editNumero) {
+    if (!editNombre.trim() || !editCodigo.trim() || !editCreditos) {
       setError("Por favor completa todos los campos");
       return;
     }
@@ -62,21 +65,22 @@ export default function CuatrimestreList({
     setError(null);
 
     try {
-      const cuatrimestreData = {
-        programa_id: parseInt(programaId),
-        numero: parseInt(editNumero),
-        nombre: editNombre.trim()
+      const materiaData = {
+        cuatrimestre_id: parseInt(cuatrimestreId),
+        nombre: editNombre.trim(),
+        codigo: editCodigo.trim(),
+        creditos: parseInt(editCreditos)
       };
 
-      const result = await cuatrimestresService.update(id, cuatrimestreData);
+      const result = await materiasService.update(id, materiaData);
 
       if (result.success) {
         setEditingId(null);
-        if (onCuatrimestreUpdated) {
-          onCuatrimestreUpdated();
+        if (onMateriaUpdated) {
+          onMateriaUpdated();
         }
       } else {
-        setError(result.message || "Error al actualizar el cuatrimestre");
+        setError(result.message || "Error al actualizar la materia");
       }
     } catch (err) {
       console.error("Error:", err);
@@ -100,6 +104,14 @@ export default function CuatrimestreList({
     }
   };
 
+  // Función para obtener color según créditos
+  const getCreditosColor = (creditos) => {
+    if (creditos >= 8) return "bg-red-100 text-red-800";
+    if (creditos >= 6) return "bg-orange-100 text-orange-800";
+    if (creditos >= 4) return "bg-yellow-100 text-yellow-800";
+    return "bg-green-100 text-green-800";
+  };
+
   return (
     <div className="space-y-6">
       {/* Mensaje de error */}
@@ -114,43 +126,43 @@ export default function CuatrimestreList({
         </div>
       )}
 
-      {cuatrimestres.length === 0 ? (
+      {!Array.isArray(materias) || materias.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300">
           <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
           <p className="text-gray-600 text-lg font-medium mb-2">
-            No hay cuatrimestres registrados
+            No hay materias registradas
           </p>
           <p className="text-gray-500 max-w-md mx-auto">
-            Comienza registrando el primer cuatrimestre utilizando el formulario
+            Comienza registrando la primera materia utilizando el formulario
           </p>
         </div>
       ) : (
         <div className="space-y-4">
-          {cuatrimestres.map((cuatrimestre) => (
+          {materias.map((materia) => (
             <div 
-              key={cuatrimestre.id} 
-              className="bg-gradient-to-r from-gray-50 to-white rounded-2xl border-2 border-gray-200 p-8 shadow-md hover:shadow-lg transition-all duration-300 hover:border-blue-300"
+              key={materia.id} 
+              className="bg-gradient-to-r from-gray-50 to-white rounded-2xl border-2 border-gray-200 p-8 shadow-md hover:shadow-lg transition-all duration-300 hover:border-purple-300"
             >
-              {editingId === cuatrimestre.id ? (
+              {editingId === materia.id ? (
                 // MODO EDICIÓN
                 <div className="space-y-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-xl font-bold text-gray-800">
-                      Editando Cuatrimestre
+                      Editando Materia
                     </h3>
                     <div className="flex gap-3">
                       <button
-                        onClick={() => handleSaveEdit(cuatrimestre.id)}
-                        disabled={loading[`edit-${cuatrimestre.id}`]}
-                        className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-medium hover:from-blue-700 hover:to-blue-800 transition-all duration-300 shadow-md"
+                        onClick={() => handleSaveEdit(materia.id)}
+                        disabled={loading[`edit-${materia.id}`]}
+                        className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl font-medium hover:from-purple-700 hover:to-purple-800 transition-all duration-300 shadow-md"
                       >
-                        {loading[`edit-${cuatrimestre.id}`] ? "Guardando..." : "Guardar"}
+                        {loading[`edit-${materia.id}`] ? "Guardando..." : "Guardar"}
                       </button>
                       <button
                         onClick={handleCancelEdit}
-                        disabled={loading[`edit-${cuatrimestre.id}`]}
+                        disabled={loading[`edit-${materia.id}`]}
                         className="px-5 py-2.5 bg-gray-200 text-gray-800 rounded-xl font-medium hover:bg-gray-300 transition-all duration-300"
                       >
                         Cancelar
@@ -158,7 +170,7 @@ export default function CuatrimestreList({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-3">
                       <label className="block text-gray-700 font-semibold">
                         Nombre
@@ -167,23 +179,36 @@ export default function CuatrimestreList({
                         type="text"
                         value={editNombre}
                         onChange={(e) => setEditNombre(e.target.value)}
-                        className="w-full bg-white border-2 border-gray-300 rounded-lg px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 hover:border-gray-400 transition-all duration-300"
-                        placeholder="Nombre del cuatrimestre"
+                        className="w-full bg-white border-2 border-gray-300 rounded-lg px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 hover:border-gray-400 transition-all duration-300"
+                        placeholder="Nombre de la materia"
                       />
                     </div>
 
                     <div className="space-y-3">
                       <label className="block text-gray-700 font-semibold">
-                        Número
+                        Código
+                      </label>
+                      <input
+                        type="text"
+                        value={editCodigo}
+                        onChange={(e) => setEditCodigo(e.target.value)}
+                        className="w-full bg-white border-2 border-gray-300 rounded-lg px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 hover:border-gray-400 transition-all duration-300"
+                        placeholder="Código (ej: PROG101)"
+                      />
+                    </div>
+
+                    <div className="space-y-3">
+                      <label className="block text-gray-700 font-semibold">
+                        Créditos
                       </label>
                       <input
                         type="number"
-                        value={editNumero}
-                        onChange={(e) => setEditNumero(e.target.value)}
-                        className="w-full bg-white border-2 border-gray-300 rounded-lg px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 hover:border-gray-400 transition-all duration-300"
-                        placeholder="Número"
+                        value={editCreditos}
+                        onChange={(e) => setEditCreditos(e.target.value)}
+                        className="w-full bg-white border-2 border-gray-300 rounded-lg px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 hover:border-gray-400 transition-all duration-300"
+                        placeholder="Créditos"
                         min="1"
-                        max="16"
+                        max="12"
                       />
                     </div>
                   </div>
@@ -192,37 +217,56 @@ export default function CuatrimestreList({
                 // MODO VISUALIZACIÓN
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                   <div className="flex-1">
-                    <div className="flex items-center mb-4">
-                      <div className="w-14 h-14 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center mr-5 shadow-sm">
-                        <span className="text-2xl font-bold text-blue-800">
-                          #{cuatrimestre.numero}
-                        </span>
+                    <div className="flex items-start mb-4">
+                      <div className={`px-4 py-2 rounded-xl font-bold text-lg mr-5 ${getCreditosColor(materia.creditos)}`}>
+                        {materia.creditos} créditos
                       </div>
-                      <div>
-                        <h3 className="text-2xl font-bold text-gray-800 mb-2">
-                          {cuatrimestre.nombre}
-                        </h3>
+                      <div className="flex-1">
+                        <div className="flex items-center mb-2">
+                          <h3 className="text-2xl font-bold text-gray-800 mr-4">
+                            {materia.nombre}
+                          </h3>
+                          <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded-lg text-sm font-medium">
+                            {materia.codigo}
+                          </span>
+                        </div>
                         <div className="flex flex-wrap gap-4">
                           <span className="inline-flex items-center text-gray-600">
                             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                             </svg>
-                            ID: {cuatrimestre.id}
+                            ID: {materia.id}
                           </span>
-                          {cuatrimestre.created_at && (
+                          {materia.created_at && (
                             <span className="inline-flex items-center text-gray-600">
                               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                               </svg>
-                              Creado: {formatDate(cuatrimestre.created_at)}
+                              Creado: {formatDate(materia.created_at)}
                             </span>
                           )}
-                          {cuatrimestre.programa_nombre && (
+                          {materia.cuatrimestre_numero && (
+                            <span className="inline-flex items-center text-gray-600">
+                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              Cuatrimestre #{materia.cuatrimestre_numero}
+                            </span>
+                          )}
+                          {materia.programa_nombre && (
                             <span className="inline-flex items-center text-gray-600">
                               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                               </svg>
-                              {cuatrimestre.programa_nombre}
+                              {materia.programa_nombre}
+                            </span>
+                          )}
+                          {materia.docente_nombre && (
+                            <span className="inline-flex items-center text-gray-600">
+                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                              </svg>
+                              Docente: {materia.docente_nombre}
                             </span>
                           )}
                         </div>
@@ -232,7 +276,7 @@ export default function CuatrimestreList({
 
                   <div className="flex flex-wrap gap-3">
                     <button
-                      onClick={() => handleEdit(cuatrimestre)}
+                      onClick={() => handleEdit(materia)}
                       className="px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl font-medium hover:from-amber-600 hover:to-amber-700 transition-all duration-300 shadow-md flex items-center gap-2"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -241,11 +285,11 @@ export default function CuatrimestreList({
                       Editar
                     </button>
                     <button
-                      onClick={() => handleDelete(cuatrimestre.id)}
-                      disabled={loading[cuatrimestre.id]}
+                      onClick={() => handleDelete(materia.id)}
+                      disabled={loading[materia.id]}
                       className="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl font-medium hover:from-red-600 hover:to-red-700 transition-all duration-300 shadow-md flex items-center gap-2"
                     >
-                      {loading[cuatrimestre.id] ? (
+                      {loading[materia.id] ? (
                         <>
                           <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

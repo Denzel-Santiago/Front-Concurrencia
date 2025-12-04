@@ -1,28 +1,119 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import MateriaForm from "./MateriaForm";
 import MateriaList from "./MateriaList";
+import { materiasService } from "../../../Services/materias.service";
+import { programasService } from "../../../Services/programasService";
+import { cuatrimestresService } from "../../../Services/cuatrimestresService";
 
 export default function Materias() {
   const navigate = useNavigate();
   const [programaSeleccionado, setProgramaSeleccionado] = useState("");
   const [cuatrimestreSeleccionado, setCuatrimestreSeleccionado] = useState("");
   const [materias, setMaterias] = useState([]);
+  const [programas, setProgramas] = useState([]);
+  const [cuatrimestres, setCuatrimestres] = useState([]);
+  const [loading, setLoading] = useState({
+    programas: false,
+    cuatrimestres: false,
+    materias: false
+  });
+  const [error, setError] = useState(null);
 
-  const programas = [
-    { id: 1, nombre: "Ingeniería en Software", cuatrimestres: 10 },
-    { id: 2, nombre: "Administración de Empresas", cuatrimestres: 8 },
-    { id: 3, nombre: "Diseño Digital", cuatrimestres: 9 }
-  ];
+  // Cargar programas desde la API
+  useEffect(() => {
+    const loadProgramas = async () => {
+      setLoading(prev => ({ ...prev, programas: true }));
+      try {
+        const data = await programasService.getAll();
+        setProgramas(data || []);
+      } catch (err) {
+        console.error("Error al cargar programas:", err);
+        setError("Error al cargar los programas");
+        setProgramas([]);
+      } finally {
+        setLoading(prev => ({ ...prev, programas: false }));
+      }
+    };
 
-  const cuatrimestres = [
-    { id: 1, numero: 1, nombre: "Primer Cuatrimestre", programaId: 1 },
-    { id: 2, numero: 2, nombre: "Segundo Cuatrimestre", programaId: 1 },
-    { id: 3, numero: 1, nombre: "Primer Cuatrimestre", programaId: 2 },
-    { id: 4, numero: 2, nombre: "Segundo Cuatrimestre", programaId: 2 },
-    { id: 5, numero: 3, nombre: "Tercer Cuatrimestre", programaId: 1 },
-    { id: 6, numero: 1, nombre: "Primer Cuatrimestre", programaId: 3 },
-  ];
+    loadProgramas();
+  }, []);
+
+  // Cargar cuatrimestres cuando se selecciona un programa
+  useEffect(() => {
+    if (programaSeleccionado) {
+      loadCuatrimestresByPrograma(programaSeleccionado);
+      setCuatrimestreSeleccionado(""); // Resetear cuatrimestre seleccionado
+    } else {
+      setCuatrimestres([]);
+      setCuatrimestreSeleccionado("");
+    }
+  }, [programaSeleccionado]);
+
+  // Cargar materias cuando se selecciona un cuatrimestre
+  useEffect(() => {
+    if (cuatrimestreSeleccionado) {
+      loadMateriasByCuatrimestre(cuatrimestreSeleccionado);
+    } else {
+      setMaterias([]);
+    }
+  }, [cuatrimestreSeleccionado]);
+
+  const loadCuatrimestresByPrograma = async (programaId) => {
+    setLoading(prev => ({ ...prev, cuatrimestres: true }));
+    setError(null);
+    try {
+      const data = await cuatrimestresService.getByPrograma(programaId);
+      setCuatrimestres(data || []);
+    } catch (err) {
+      console.error("Error al cargar cuatrimestres:", err);
+      setError("Error al cargar cuatrimestres del programa");
+      setCuatrimestres([]);
+    } finally {
+      setLoading(prev => ({ ...prev, cuatrimestres: false }));
+    }
+  };
+
+  const loadMateriasByCuatrimestre = async (cuatrimestreId) => {
+    setLoading(prev => ({ ...prev, materias: true }));
+    setError(null);
+    try {
+      const data = await materiasService.getByCuatrimestre(cuatrimestreId);
+      setMaterias(data || []);
+    } catch (err) {
+      console.error("Error al cargar materias:", err);
+      setError("Error al cargar materias del cuatrimestre");
+      setMaterias([]);
+    } finally {
+      setLoading(prev => ({ ...prev, materias: false }));
+    }
+  };
+
+  const handleMateriaCreated = () => {
+    if (cuatrimestreSeleccionado) {
+      loadMateriasByCuatrimestre(cuatrimestreSeleccionado);
+    }
+  };
+
+  const handleMateriaDeleted = () => {
+    if (cuatrimestreSeleccionado) {
+      loadMateriasByCuatrimestre(cuatrimestreSeleccionado);
+    }
+  };
+
+  const handleMateriaUpdated = () => {
+    if (cuatrimestreSeleccionado) {
+      loadMateriasByCuatrimestre(cuatrimestreSeleccionado);
+    }
+  };
+
+  const programaSeleccionadoObj = programas.find(p => 
+    p && p.id && p.id.toString() === programaSeleccionado
+  );
+
+  const cuatrimestreSeleccionadoObj = cuatrimestres.find(c => 
+    c && c.id && c.id.toString() === cuatrimestreSeleccionado
+  );
 
   return (
     <div className="min-h-screen w-full bg-blue-950 p-4 md:p-8">
@@ -92,18 +183,23 @@ export default function Materias() {
                         setProgramaSeleccionado(e.target.value);
                         setCuatrimestreSeleccionado("");
                       }}
+                      disabled={loading.programas}
                     >
                       <option value="" className="text-gray-400">-- Selecciona un programa --</option>
-                      {programas.map((p) => (
-                        <option key={p.id} value={p.id} className="text-gray-800">
-                          {p.nombre} ({p.cuatrimestres} cuatrimestres)
-                        </option>
-                      ))}
+                      {loading.programas ? (
+                        <option disabled className="text-gray-400">Cargando programas...</option>
+                      ) : (
+                        Array.isArray(programas) && programas.map((p) => (
+                          <option key={p?.id || Math.random()} value={p?.id || ""} className="text-gray-800">
+                            {p?.nombre}
+                          </option>
+                        ))
+                      )}
                     </select>
                   </div>
 
                   {/* Información del programa seleccionado */}
-                  {programaSeleccionado && (
+                  {programaSeleccionado && programaSeleccionadoObj && (
                     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border-2 border-blue-200">
                       <div className="flex items-center">
                         <svg className="w-6 h-6 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -114,7 +210,7 @@ export default function Materias() {
                             Programa seleccionado:
                           </p>
                           <p className="text-blue-900 text-xl font-bold">
-                            {programas.find(p => p.id.toString() === programaSeleccionado)?.nombre}
+                            {programaSeleccionadoObj.nombre}
                           </p>
                         </div>
                       </div>
@@ -135,26 +231,33 @@ export default function Materias() {
                       className={`w-full bg-white border-2 ${programaSeleccionado ? 'border-gray-300 cursor-pointer' : 'border-gray-200 cursor-not-allowed'} rounded-xl px-5 py-4 text-gray-800 text-lg focus:outline-none focus:ring-4 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-300 appearance-none shadow-sm`}
                       value={cuatrimestreSeleccionado}
                       onChange={(e) => setCuatrimestreSeleccionado(e.target.value)}
-                      disabled={!programaSeleccionado}
+                      disabled={!programaSeleccionado || loading.cuatrimestres}
                     >
                       <option value="" className="text-gray-400">-- Selecciona un cuatrimestre --</option>
-                      {cuatrimestres
-                        .filter((c) => c.programaId == programaSeleccionado)
-                        .map((c) => (
-                          <option key={c.id} value={c.id} className="text-gray-800">
-                            {c.nombre} (#{c.numero})
+                      {loading.cuatrimestres ? (
+                        <option disabled className="text-gray-400">Cargando cuatrimestres...</option>
+                      ) : (
+                        Array.isArray(cuatrimestres) && cuatrimestres.map((c) => (
+                          <option key={c?.id || Math.random()} value={c?.id || ""} className="text-gray-800">
+                            {c?.nombre} (#{c?.numero})
                           </option>
-                        ))}
+                        ))
+                      )}
                     </select>
                     {!programaSeleccionado && (
                       <p className="text-gray-500 text-sm mt-3">
                         Primero selecciona un programa
                       </p>
                     )}
+                    {loading.cuatrimestres && (
+                      <p className="text-blue-600 text-sm mt-3">
+                        Cargando cuatrimestres...
+                      </p>
+                    )}
                   </div>
 
                   {/* Información del cuatrimestre seleccionado */}
-                  {cuatrimestreSeleccionado && (
+                  {cuatrimestreSeleccionado && cuatrimestreSeleccionadoObj && (
                     <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-6 rounded-xl border-2 border-emerald-200">
                       <div className="flex items-center">
                         <svg className="w-6 h-6 text-emerald-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -165,7 +268,7 @@ export default function Materias() {
                             Cuatrimestre seleccionado:
                           </p>
                           <p className="text-emerald-900 text-xl font-bold">
-                            {cuatrimestres.find(c => c.id.toString() === cuatrimestreSeleccionado)?.nombre}
+                            {cuatrimestreSeleccionadoObj.nombre} (#{cuatrimestreSeleccionadoObj.numero})
                           </p>
                         </div>
                       </div>
@@ -173,6 +276,13 @@ export default function Materias() {
                   )}
                 </div>
               </div>
+
+              {/* Mensajes de error */}
+              {error && (
+                <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl text-center">
+                  <p className="text-red-600 font-medium">{error}</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -209,7 +319,7 @@ export default function Materias() {
           )}
 
           {/* CONTENIDO PRINCIPAL CUANDO TODO ESTÁ SELECCIONADO */}
-          {programaSeleccionado && cuatrimestreSeleccionado && (
+          {programaSeleccionado && cuatrimestreSeleccionado && programaSeleccionadoObj && cuatrimestreSeleccionadoObj && (
             <>
               {/* Header de selección */}
               <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-2xl shadow-2xl p-8 mb-12 border-2 border-purple-200">
@@ -228,22 +338,29 @@ export default function Materias() {
                         <p className="mb-1">
                           <span className="font-semibold">Programa:</span>{" "}
                           <span className="text-blue-800 font-bold">
-                            {programas.find(p => p.id.toString() === programaSeleccionado)?.nombre}
+                            {programaSeleccionadoObj.nombre}
                           </span>
                         </p>
                         <p>
                           <span className="font-semibold">Cuatrimestre:</span>{" "}
                           <span className="text-emerald-800 font-bold">
-                            {cuatrimestres.find(c => c.id.toString() === cuatrimestreSeleccionado)?.nombre}
+                            {cuatrimestreSeleccionadoObj.nombre} (#{cuatrimestreSeleccionadoObj.numero})
                           </span>
                         </p>
                       </div>
+                      {loading.materias && (
+                        <p className="text-blue-600 text-sm mt-2 flex items-center gap-2">
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                          Cargando materias...
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-4">
                     <button
                       onClick={() => setCuatrimestreSeleccionado("")}
                       className="px-6 py-3 bg-white hover:bg-gray-50 text-gray-800 hover:text-gray-900 rounded-xl transition-all duration-300 border-2 border-gray-300 hover:border-gray-400 font-semibold shadow-md hover:shadow-lg"
+                      disabled={loading.materias}
                     >
                       Cambiar Cuatrimestre
                     </button>
@@ -253,6 +370,7 @@ export default function Materias() {
                         setCuatrimestreSeleccionado("");
                       }}
                       className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 hover:text-gray-900 rounded-xl transition-all duration-300 border-2 border-gray-300 hover:border-gray-400 font-semibold shadow-md hover:shadow-lg"
+                      disabled={loading.materias}
                     >
                       Cambiar Programa
                     </button>
@@ -281,7 +399,7 @@ export default function Materias() {
                   <div className="mt-8">
                     <MateriaForm
                       cuatrimestreId={cuatrimestreSeleccionado}
-                      setMaterias={setMaterias}
+                      onMateriaCreated={handleMateriaCreated}
                     />
                   </div>
                 </div>
@@ -298,16 +416,44 @@ export default function Materias() {
                       <h3 className="text-2xl font-bold text-gray-800">
                         Materias Registradas
                       </h3>
-                      <span className="bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 text-lg font-bold px-5 py-2 rounded-full shadow-sm">
-                        {materias.length} registradas
-                      </span>
+                      {!loading.materias && Array.isArray(materias) && (
+                        <span className="bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 text-lg font-bold px-5 py-2 rounded-full shadow-sm">
+                          {materias.length} registradas
+                        </span>
+                      )}
                     </div>
                     <p className="text-gray-600 text-lg">
                       Lista de materias asignadas a este cuatrimestre
                     </p>
                   </div>
                   <div className="mt-8">
-                    <MateriaList materias={materias} />
+                    {loading.materias ? (
+                      <div className="text-center py-12">
+                        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+                        <p className="mt-4 text-gray-600">Cargando materias...</p>
+                      </div>
+                    ) : error ? (
+                      <div className="text-center py-8 bg-red-50 rounded-xl border border-red-200">
+                        <p className="text-red-600">{error}</p>
+                        <button
+                          onClick={() => loadMateriasByCuatrimestre(cuatrimestreSeleccionado)}
+                          className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                        >
+                          Reintentar
+                        </button>
+                      </div>
+                    ) : Array.isArray(materias) ? (
+                      <MateriaList 
+                        materias={materias} 
+                        onMateriaDeleted={handleMateriaDeleted}
+                        onMateriaUpdated={handleMateriaUpdated}
+                        cuatrimestreId={cuatrimestreSeleccionado}
+                      />
+                    ) : (
+                      <div className="text-center py-12 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300">
+                        <p className="text-gray-600">No hay datos disponibles</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
