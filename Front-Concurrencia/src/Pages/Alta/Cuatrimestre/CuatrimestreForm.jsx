@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { cuatrimestresService } from "../../../Services/programasService";
+import { cuatrimestresService } from "../../../Services/cuatrimestresService";
 
 export default function CuatrimestreForm({ programaId, onCuatrimestreCreated }) {
   const [nombre, setNombre] = useState("");
