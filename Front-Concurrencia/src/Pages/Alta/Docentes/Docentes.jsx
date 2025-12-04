@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DocenteForm from "./DocenteForm";
-import DocenteList from "./DocenteList";
+import DocenteList from "./DocenteList"; 
 import { docentesService } from "../../../Services/docentes.service";
 import { programasService } from "../../../Services/programasService";
 import { cuatrimestresService } from "../../../Services/cuatrimestresService";
